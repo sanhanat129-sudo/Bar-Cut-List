@@ -32,7 +32,7 @@
             font-weight: 700;
             font-size: 17px;
             letter-spacing: 0.12em;
-            color: #ef4444;
+            color: #24306e;
         }
         .logo-mark .logo-bottom {
             font-family: 'Sarabun', sans-serif;
@@ -96,7 +96,7 @@
                     <span class="logo-bottom">CONSTRUCTION</span>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-800 leading-tight">Bar-Cut List <span class="text-xs bg-[#24306e] text-white px-1 rounded ml-1 align-top">PRO</span></h1>
+                    <h1 class="text-xl font-bold text-slate-800 leading-tight">Bar-Cut List <span class="text-xs bg-red-600 text-white px-1 rounded ml-1 align-top">PRO</span></h1>
                     <p class="text-xs text-slate-500">NAPAT CONSTRUCTION | Rebar Optimization Tool</p>
                 </div>
             </div>
@@ -127,7 +127,7 @@
                 <h2 class="text-lg font-bold text-slate-700">เพิ่มรายการตัดเหล็ก</h2>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-12 gap-4 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-12 gap-4 mb-6 items-center">
                 <div class="col-span-1 md:col-span-2">
                     <label class="block text-xs font-bold text-slate-500 mb-1">ประเภท</label>
                     <select id="steel-type" onchange="updateDiameters()" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
@@ -168,10 +168,16 @@
                         <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Optimize จากสต็อกอัตโนมัติ
                     </div>
                 </div>
-                <div class="col-span-1 md:col-span-2 flex flex-col justify-end">
-                    <label class="flex items-center gap-2 cursor-pointer select-none bg-emerald-50 border border-emerald-200 rounded p-2 h-[42px]">
+                <div class="col-span-1 md:col-span-2 flex items-center">
+                    <label class="flex items-center gap-2 cursor-pointer select-none bg-emerald-50 border border-emerald-200 rounded p-2 h-[42px] w-full">
                         <input type="checkbox" id="use-stock" onchange="toggleUseStock()" class="w-4 h-4 accent-emerald-600 flex-shrink-0">
                         <span class="text-[11px] font-bold text-emerald-800 leading-tight">ใช้เหล็กในคลัง<br>(Optimize อัตโนมัติ)</span>
+                    </label>
+                </div>
+                <div class="col-span-1 md:col-span-2 hidden" id="urgent-container">
+                    <label class="flex items-center gap-2 cursor-pointer select-none bg-red-50 border border-red-300 rounded p-2 h-[42px]">
+                        <input type="checkbox" id="use-urgent" class="w-4 h-4 accent-red-600 flex-shrink-0">
+                        <span class="text-[11px] font-bold text-red-700 leading-tight"><i class="fa-solid fa-bolt"></i> เร่งด่วน / ลัดคิว<br>(ใช้สต็อกก่อน)</span>
                     </label>
                 </div>
                 <div class="col-span-1 md:col-span-2">
@@ -184,4 +190,1232 @@
                 </div>
                 <div class="col-span-2 md:col-span-2">
                     <label class="block text-xs font-bold text-slate-500 mb-1">Note / ตำแหน่ง</label>
-                    <input type="text" id="notes" placeholder="เช่น เสา C1" class="w-full border border-slate-300 rounded
+                    <input type="text" id="notes" placeholder="เช่น เสา C1" class="w-full border border-slate-300 rounded p-2">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="addItem()" class="flex-1 bg-[#24306e] text-white py-3 rounded shadow hover:bg-slate-800 transition font-bold">
+                    <i class="fa-solid fa-circle-plus"></i> เพิ่มรายการ
+                </button>
+                <button onclick="calculate()" id="calc-btn" disabled class="flex-1 bg-emerald-500 text-white py-3 rounded shadow hover:bg-emerald-600 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-calculator"></i> คำนวณ
+                </button>
+                <button onclick="resetForm()" class="px-6 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 font-bold">
+                    รีเซ็ต
+                </button>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-100">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold text-slate-500">รายการรอคำนวณ (<span id="temp-count" class="text-blue-600">0</span>)</h3>
+                    <button onclick="clearAll()" class="text-xs text-red-500 hover:underline">ลบทั้งหมด</button>
+                </div>
+                <div id="temp-list" class="bg-slate-50 rounded border border-dashed border-slate-300 p-4 min-h-[80px] text-center text-slate-400 text-sm">
+                    ยังไม่มีรายการ... กรุณาเพิ่มข้อมูลด้านบน
+                </div>
+            </div>
+
+            <div id="stock-hint" class="mt-4 hidden bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg p-3">
+                <i class="fa-solid fa-circle-info"></i> มีข้อมูลสต็อกอยู่ <span id="stock-hint-count" class="font-bold">0</span> รายการ ระบบจะนำไปหักลบตอนคำนวณอัตโนมัติ
+            </div>
+        </div>
+
+        <!-- STOCK PANEL -->
+        <div id="panel-stock" class="bg-white rounded-xl shadow p-6 border border-slate-200 no-print hidden">
+            <div class="flex items-center gap-2 mb-2 border-b pb-2">
+                <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700"><i class="fa-solid fa-warehouse"></i></div>
+                <h2 class="text-lg font-bold text-slate-700">เหล็กในคลัง (สต็อก)</h2>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">กรอกเหล็กที่มีอยู่ในคลังจริง ระบบจะนำไปหักลบกับรายการตัด แล้วสรุปว่าเหลือเท่าไหร่ และต้องสั่งซื้อเพิ่มกี่เส้น</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-12 gap-4 mb-4">
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">ประเภท</label>
+                    <select id="stock-type" onchange="updateStockDiameters()" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                        <option value="RB">RB (เหล็กเส้นกลม)</option>
+                        <option value="DB">DB (เหล็กข้ออ้อย)</option>
+                    </select>
+                </div>
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">ขนาด</label>
+                    <select id="stock-diameter" onchange="checkStockCustomDiameter()" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                        <option value="" selected disabled>เลือกขนาด</option>
+                    </select>
+                </div>
+                <div class="col-span-1 md:col-span-3 hidden" id="stock-custom-dia-container">
+                    <label class="block text-xs font-bold text-orange-600 mb-1">ขนาด (mm)</label>
+                    <input type="text" id="stock-custom-dia" placeholder="เช่น 40" class="w-full border-2 border-orange-200 rounded p-2 bg-orange-50 font-bold">
+                </div>
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">ความยาว/เส้น (ม.)</label>
+                    <input type="number" id="stock-length" value="10" class="w-full border border-slate-300 rounded p-2">
+                </div>
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-xs font-bold text-emerald-600 mb-1">จำนวนในสต็อก (เส้น)</label>
+                    <input type="number" id="stock-qty" min="1" value="1" class="w-full border-2 border-emerald-200 rounded p-2 bg-emerald-50 font-bold">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mb-6">
+                <button onclick="addStockItem()" class="flex-1 bg-emerald-600 text-white py-3 rounded shadow hover:bg-emerald-700 transition font-bold">
+                    <i class="fa-solid fa-circle-plus"></i> เพิ่มเข้าคลัง
+                </button>
+                <button onclick="clearStock()" class="px-6 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 font-bold">
+                    ล้างสต็อกทั้งหมด
+                </button>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100">
+                <h3 class="text-sm font-bold text-slate-500 mb-2">รายการในคลัง (<span id="stock-count" class="text-emerald-600">0</span>)</h3>
+                <div id="stock-list" class="bg-slate-50 rounded border border-dashed border-slate-300 p-4 min-h-[80px] text-center text-slate-400 text-sm">
+                    ยังไม่มีข้อมูลสต็อก... กรุณาเพิ่มข้อมูลด้านบน
+                </div>
+            </div>
+        </div>
+
+        <div id="report-area" class="hidden space-y-2">
+
+            <div class="bg-white rounded-xl shadow p-3 border border-slate-200">
+                <div class="flex justify-between items-start border-b pb-2 mb-2">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Bill of Materials</h2>
+                        <p class="text-xs text-slate-500">ใบสรุปรายการสั่งซื้อเหล็ก</p>
+                    </div>
+                    <div class="text-right text-sm">
+                        <div class="logo-mark flex flex-col items-end justify-center">
+                            <span class="logo-top">NAPAT</span>
+                            <span class="logo-bottom">CONSTRUCTION</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">Date: <span id="print-date"></span></div>
+                    </div>
+                </div>
+                <table class="w-full text-xs">
+                    <thead class="bg-emerald-50 text-emerald-900">
+                        <tr>
+                            <th class="p-1 text-left text-xs">รายการ (Item)</th>
+                            <th class="p-1 text-center text-xs">ความยาวมาตรฐาน (ม.)</th>
+                            <th class="p-1 text-center text-xs">ต้องการทั้งหมด (เส้น)</th>
+                            <th class="p-1 text-center text-xs">มีในสต็อก (เส้น)</th>
+                            <th class="p-1 text-center text-xs">ใช้จากสต็อก (เส้น)</th>
+                            <th class="p-1 text-center text-xs bg-blue-100">ต้องสั่งซื้อเพิ่ม (เส้น)</th>
+                            <th class="p-1 text-center text-xs">คงเหลือในสต็อก (เส้น)</th>
+                            <th class="p-1 text-center text-xs">น้ำหนักต่อเมตร <span class="text-[8px]">(kg/m)</span></th>
+                            <th class="p-1 text-right text-xs">น้ำหนักรวม (กก.)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="po-table-body" class="divide-y divide-slate-100">
+                    </tbody>
+                </table>
+                <p id="stock-footnote" class="text-[10px] text-slate-400 mt-1 hidden">* น้ำหนักรวมคำนวณจากจำนวนเส้นที่ต้องสั่งซื้อเพิ่มเท่านั้น</p>
+            </div>
+
+            <div id="cutting-plan-container" class="space-y-1 bottom-margin">
+            </div>
+
+            <div class="bg-white rounded-xl shadow p-3 border border-slate-200 page-break">
+                <div class="flex items-center gap-1 mb-2 border-b pb-1">
+                    <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-xs"><i class="fa-solid fa-trash-can"></i></div>
+                    <h2 class="text-sm font-bold text-slate-700">สรุปเศษเหล็ก (Waste Report)</h2>
+                </div>
+                <table class="w-full text-xs">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="p-1 text-left text-xs">Type</th>
+                            <th class="p-1 text-center text-xs">ID</th>
+                            <th class="p-1 text-center text-xs">เศษเหลือ (ม.)</th>
+                            <th class="p-1 text-center text-xs">น้ำหนัก (kg)</th>
+                            <th class="p-1 text-left text-xs">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="waste-table-body" class="divide-y divide-slate-100 text-slate-600">
+                    </tbody>
+                    <tfoot class="bg-amber-50 border-t border-amber-300">
+                        <tr class="font-bold text-amber-900 text-xs">
+                            <td class="p-1" colspan="2">รวมทั้งหมด</td>
+                            <td class="p-1 text-center text-red-600" id="total-waste-meters">0.00</td>
+                            <td class="p-1 text-center text-orange-600" id="total-waste-kg">0.00</td>
+                            <td class="p-2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div id="stock-status-page" class="bg-white rounded-xl shadow p-3 border border-slate-200 page-break hidden">
+                <div class="flex justify-between items-start border-b pb-2 mb-2">
+                    <div class="flex items-center gap-1">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xs"><i class="fa-solid fa-warehouse"></i></div>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-700">สถานะเหล็กในคลัง (Stock Status)</h2>
+                            <p class="text-[10px] text-slate-400">สรุปการใช้สต็อกหลังการคำนวณตัด</p>
+                        </div>
+                    </div>
+                    <div class="logo-mark flex flex-col items-end justify-center">
+                        <span class="logo-top">NAPAT</span>
+                        <span class="logo-bottom">CONSTRUCTION</span>
+                    </div>
+                </div>
+                <table class="w-full text-xs">
+                    <thead class="bg-emerald-50 text-emerald-900">
+                        <tr>
+                            <th class="p-1 text-left text-xs">รายการ (Item)</th>
+                            <th class="p-1 text-center text-xs">ความยาว/เส้น (ม.)</th>
+                            <th class="p-1 text-center text-xs">มีในสต็อกเดิม (เส้น)</th>
+                            <th class="p-1 text-center text-xs bg-emerald-100">ใช้ไป (เส้น)</th>
+                            <th class="p-1 text-center text-xs bg-blue-100">คงเหลือ (เส้น)</th>
+                            <th class="p-1 text-left text-xs">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-status-table-body" class="divide-y divide-slate-100">
+                    </tbody>
+                </table>
+                <div id="stock-status-purchase" class="mt-3"></div>
+            </div>
+
+            <div class="text-center text-slate-400 text-xs py-1">
+                Report generated by NAPAT CONSTRUCTION | Bar-Cut List Tool
+            </div>
+        </div>
+    </main>
+
+    <!-- Credit footer -->
+    <footer class="text-center text-slate-400 text-[11px] py-3 no-print">
+        By <span class="font-semibold text-slate-500">somoil</span>
+    </footer>
+
+    <div id="weight-modal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeWeightModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fa-solid fa-scale-balanced text-[#24306e]"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-bold text-gray-900" id="modal-title">ตั้งค่าน้ำหนักเหล็ก (kg/m)</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500 mb-4">ค่าเริ่มต้นอ้างอิงตามมาตรฐาน มอก.</p>
+
+                                <div id="weight-table-container" class="border rounded-md overflow-hidden max-h-96 overflow-y-auto">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                    <button id="btn-save-weights" type="button" onclick="saveWeights()" class="hidden w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#24306e] text-base font-medium text-white hover:bg-slate-800 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        บันทึก
+                    </button>
+                    <button id="btn-edit-weights" type="button" onclick="enableEditMode()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fa-solid fa-pen-to-square mr-2 pt-1"></i> แก้ไข
+                    </button>
+                    <button id="btn-reset-weights" type="button" onclick="resetWeights()" class="hidden w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        คืนค่าเดิม
+                    </button>
+                    <button type="button" onclick="closeWeightModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const defaultSteelWeights = {
+            'RB': { '6': 0.222, '9': 0.499, '12': 0.888, '15': 1.387, '19': 2.226, '22': 2.984, '25': 3.853 },
+            'DB': { '10': 0.617, '12': 0.888, '16': 1.578, '20': 2.466, '25': 3.853, '28': 4.834, '32': 6.313 }
+        };
+        let currentSteelWeights = JSON.parse(JSON.stringify(defaultSteelWeights));
+
+        const steelSizes = {
+            'RB': ['6', '9', '12', '15', '19', '22', '25'],
+            'DB': ['10', '12', '16', '20', '25', '28', '32']
+        };
+
+        const typeLabels = {
+            'RB': 'RB (เหล็กเส้นกลม)',
+            'DB': 'DB (เหล็กข้ออ้อย)'
+        };
+
+        let items = [];
+        let stockItems = [];
+        let isEditMode = false;
+        let customTypes = {};
+
+        // --- MODE SWITCHING ---
+        function switchMode(mode) {
+            const tabOrder = document.getElementById('tab-order');
+            const tabStock = document.getElementById('tab-stock');
+            const panelOrder = document.getElementById('panel-order');
+            const panelStock = document.getElementById('panel-stock');
+
+            if (mode === 'order') {
+                tabOrder.classList.add('active');
+                tabStock.classList.remove('active');
+                panelOrder.classList.remove('hidden');
+                panelStock.classList.add('hidden');
+            } else {
+                tabStock.classList.add('active');
+                tabOrder.classList.remove('active');
+                panelStock.classList.remove('hidden');
+                panelOrder.classList.add('hidden');
+            }
+        }
+
+        // --- Functions ---
+
+        function updateDiameters() {
+            const typeSelect = document.getElementById('steel-type');
+            const diaDrop = document.getElementById('diameter');
+            const customDiaContainer = document.getElementById('custom-dia-container');
+            const customWeightContainer = document.getElementById('custom-weight-container');
+            if (!typeSelect || !diaDrop) return;
+
+            const type = typeSelect.value;
+
+            customDiaContainer.style.display = 'none';
+            customWeightContainer.style.display = 'none';
+            diaDrop.disabled = false;
+            diaDrop.innerHTML = '<option value="" selected disabled>เลือกขนาด</option>';
+            const sizes = steelSizes[type] || [];
+            sizes.forEach(size => {
+                const opt = document.createElement('option');
+                opt.value = size;
+                opt.textContent = size + ' mm';
+                diaDrop.appendChild(opt);
+            });
+            const customOpt = document.createElement('option');
+            customOpt.value = 'CUSTOM_DIA';
+            customOpt.textContent = '+ ขนาดอื่นๆ';
+            customOpt.style.fontWeight = 'bold';
+            customOpt.style.color = '#ea580c';
+            diaDrop.appendChild(customOpt);
+        }
+
+        function toggleUseStock() {
+            const checked = document.getElementById('use-stock').checked;
+            const cutContainer = document.getElementById('cut-length-container');
+            const cutNote = document.getElementById('cut-length-stock-note');
+            const urgentContainer = document.getElementById('urgent-container');
+            if (checked) {
+                cutContainer.classList.add('hidden');
+                cutNote.classList.remove('hidden');
+                urgentContainer.classList.remove('hidden');
+            } else {
+                cutContainer.classList.remove('hidden');
+                cutNote.classList.add('hidden');
+                urgentContainer.classList.add('hidden');
+                document.getElementById('use-urgent').checked = false;
+            }
+        }
+
+        function checkCustomDiameter() {
+            const diaVal = document.getElementById('diameter').value;
+            const customDiaContainer = document.getElementById('custom-dia-container');
+            const customWeightContainer = document.getElementById('custom-weight-container');
+
+            if (diaVal === 'CUSTOM_DIA') {
+                customDiaContainer.style.display = '';
+                customWeightContainer.style.display = '';
+            } else {
+                customDiaContainer.style.display = 'none';
+                customWeightContainer.style.display = 'none';
+            }
+        }
+
+        function updateStockDiameters() {
+            const typeSelect = document.getElementById('stock-type');
+            const diaDrop = document.getElementById('stock-diameter');
+            if (!typeSelect || !diaDrop) return;
+
+            const type = typeSelect.value;
+            diaDrop.innerHTML = '<option value="" selected disabled>เลือกขนาด</option>';
+            const sizes = steelSizes[type] || [];
+            sizes.forEach(size => {
+                const opt = document.createElement('option');
+                opt.value = size;
+                opt.textContent = size + ' mm';
+                diaDrop.appendChild(opt);
+            });
+            const customOpt = document.createElement('option');
+            customOpt.value = 'CUSTOM_DIA';
+            customOpt.textContent = '+ ขนาดอื่นๆ';
+            customOpt.style.fontWeight = 'bold';
+            customOpt.style.color = '#ea580c';
+            diaDrop.appendChild(customOpt);
+            checkStockCustomDiameter();
+        }
+
+        function checkStockCustomDiameter() {
+            const diaVal = document.getElementById('stock-diameter').value;
+            const container = document.getElementById('stock-custom-dia-container');
+            if (diaVal === 'CUSTOM_DIA') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        // --- MODAL LOGIC ---
+        function openWeightModal() {
+            document.getElementById('weight-modal').classList.remove('hidden');
+            renderWeightTable(false);
+        }
+
+        function closeWeightModal() {
+            document.getElementById('weight-modal').classList.add('hidden');
+            isEditMode = false;
+            updateModalButtons();
+        }
+
+        function enableEditMode() {
+            isEditMode = true;
+            renderWeightTable(true);
+            updateModalButtons();
+        }
+
+        function updateModalButtons() {
+            const btnEdit = document.getElementById('btn-edit-weights');
+            const btnSave = document.getElementById('btn-save-weights');
+            const btnReset = document.getElementById('btn-reset-weights');
+
+            if (isEditMode) {
+                btnEdit.classList.add('hidden');
+                btnSave.classList.remove('hidden');
+                btnReset.classList.remove('hidden');
+            } else {
+                btnEdit.classList.remove('hidden');
+                btnSave.classList.add('hidden');
+                btnReset.classList.add('hidden');
+            }
+        }
+
+        function renderWeightTable(editable) {
+            let html = `
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-slate-100 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase">ประเภท</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase">Size (mm)</th>
+                            <th class="px-3 py-2 text-right text-xs font-bold text-[#24306e]">น้ำหนัก (kg/m)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+            `;
+
+            const types = ['RB', 'DB'];
+            const typeColors = {
+                'RB': 'bg-blue-50',
+                'DB': 'bg-emerald-50'
+            };
+
+            types.forEach(type => {
+                const sizes = steelSizes[type];
+                sizes.forEach((size, i) => {
+                    const val = currentSteelWeights[type][size];
+                    const rowClass = i === 0 ? `${typeColors[type]} border-t-2 border-slate-300` : 'hover:bg-slate-50';
+                    html += `<tr class="${rowClass}">`;
+
+                    if (i === 0) {
+                        html += `<td class="px-3 py-2 font-bold text-slate-700" rowspan="${sizes.length}">${typeLabels[type]}</td>`;
+                    }
+
+                    html += `<td class="px-3 py-2 whitespace-nowrap font-medium text-gray-700">${size}</td>`;
+                    html += `<td class="px-3 py-2 whitespace-nowrap text-right">`;
+                    if (editable) {
+                        html += `<input type="number" step="0.001" id="w-${type}-${size}" value="${val}" class="w-24 border border-blue-300 rounded px-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">`;
+                    } else {
+                        html += `<span class="text-gray-600">${val.toFixed(3)}</span>`;
+                    }
+                    html += `</td></tr>`;
+                });
+            });
+
+            html += `</tbody></table>`;
+            document.getElementById('weight-table-container').innerHTML = html;
+        }
+
+        function saveWeights() {
+            try {
+                const types = ['RB', 'DB'];
+                types.forEach(type => {
+                    steelSizes[type].forEach(size => {
+                        const el = document.getElementById(`w-${type}-${size}`);
+                        if (el) currentSteelWeights[type][size] = parseFloat(el.value) || 0;
+                    });
+                });
+
+                isEditMode = false;
+                renderWeightTable(false);
+                updateModalButtons();
+                alert('บันทึกค่าน้ำหนักเรียบร้อยแล้ว');
+            } catch (e) {
+                alert('เกิดข้อผิดพลาดในการบันทึก');
+            }
+        }
+
+        function resetWeights() {
+            if(confirm('ต้องการคืนค่ามาตรฐาน (มอก.) ใช่หรือไม่?')) {
+                currentSteelWeights = JSON.parse(JSON.stringify(defaultSteelWeights));
+                renderWeightTable(true);
+            }
+        }
+
+        function formatNum(num) {
+            return parseFloat(num).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // --- APP LOGIC: ORDER ITEMS ---
+
+        function addItem() {
+            try {
+                let type = document.getElementById('steel-type').value;
+                let dia = document.getElementById('diameter').value;
+                const useStock = document.getElementById('use-stock').checked;
+                const urgent = useStock ? document.getElementById('use-urgent').checked : false;
+                const cutLen = useStock ? null : parseFloat(document.getElementById('cut-length').value);
+                const reqLen = parseFloat(document.getElementById('required-length').value);
+                const qty = parseInt(document.getElementById('quantity').value);
+                const note = document.getElementById('notes').value || '-';
+
+                let customWeight = null;
+
+                if (dia === 'CUSTOM_DIA') {
+                    const customDiaVal = document.getElementById('custom-dia').value.trim();
+                    const customWeightVal = parseFloat(document.getElementById('custom-weight').value);
+
+                    if (!customDiaVal) { alert('กรุณาระบุขนาด'); return; }
+                    if (!customWeightVal || customWeightVal <= 0) { alert('กรุณาระบุน้ำหนัก kg/m'); return; }
+
+                    dia = customDiaVal;
+                    customWeight = customWeightVal;
+                }
+
+                if (customWeight !== null) {
+                    if (!customTypes[type]) customTypes[type] = {};
+                    customTypes[type][dia] = customWeight;
+                }
+
+                if (!dia) { alert('กรุณาเลือกขนาดเหล็ก'); return; }
+                if (!reqLen || reqLen <= 0 || isNaN(reqLen)) { alert('กรุณาระบุความยาวที่ต้องการ'); return; }
+
+                if (!useStock) {
+                    if (!cutLen || cutLen <= 0 || isNaN(cutLen)) { alert('กรุณาระบุความยาวเต็มเส้น'); return; }
+                    if (reqLen > cutLen) { alert('ความยาวที่ต้องการ ยาวกว่าความยาวเหล็กที่เลือก!'); return; }
+                }
+                if (!qty || qty < 1) { alert('จำนวนต้องมากกว่า 0'); return; }
+
+                items.push({
+                    id: Date.now(),
+                    type, dia, cutLen, reqLen,
+                    actualReqLen: reqLen,
+                    qty, note, useStock, urgent
+                });
+
+                document.getElementById('required-length').value = '';
+                document.getElementById('notes').value = '';
+                document.getElementById('quantity').value = '1';
+                document.getElementById('use-urgent').checked = false;
+                document.getElementById('required-length').focus();
+
+                renderTempList();
+
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาด: " + err.message);
+            }
+        }
+
+        function getUnitWeight(type, dia) {
+            if (currentSteelWeights[type] && currentSteelWeights[type][dia] !== undefined) {
+                return currentSteelWeights[type][dia];
+            }
+            if (customTypes[type] && customTypes[type][dia] !== undefined) {
+                return customTypes[type][dia];
+            }
+            return 0;
+        }
+
+        function renderTempList() {
+            const listEl = document.getElementById('temp-list');
+            const countEl = document.getElementById('temp-count');
+            const calcBtn = document.getElementById('calc-btn');
+
+            countEl.innerText = items.length;
+            calcBtn.disabled = items.length === 0;
+
+            if (items.length === 0) {
+                listEl.innerHTML = 'ยังไม่มีรายการ... กรุณาเพิ่มข้อมูลด้านบน';
+                return;
+            }
+
+            let html = '<div class="space-y-2">';
+            items.forEach((item, index) => {
+                const stockBadge = item.useStock
+                    ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-300 px-1.5 py-0.5 rounded-full font-bold ml-1"><i class="fa-solid fa-wand-magic-sparkles"></i> จากคลัง (Optimize)</span>`
+                    : '';
+                const urgentBadge = item.urgent
+                    ? `<span class="text-[10px] bg-red-100 text-red-700 border border-red-300 px-1.5 py-0.5 rounded-full font-bold ml-1"><i class="fa-solid fa-bolt"></i> เร่งด่วน (ลัดคิว)</span>`
+                    : '';
+                const sourceLine = item.useStock
+                    ? `จากคลัง (เลือกความยาวอัตโนมัติ) | ${item.note}`
+                    : `จาก ${formatNum(item.cutLen)} ม. | ${item.note}`;
+                html += `
+                    <div class="bg-white border border-slate-200 p-2 rounded flex justify-between items-center shadow-sm">
+                        <div class="flex gap-3 items-center text-left">
+                            <div class="bg-slate-100 px-2 py-1 rounded font-bold text-slate-700 text-sm w-20 text-center">
+                                ${item.type}${item.dia}
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-800">
+                                    ตัด <span class="text-blue-600">${formatNum(item.reqLen)}</span> ม.
+                                    <span class="text-slate-400">x</span> ${item.qty} เส้น
+                                    ${stockBadge}${urgentBadge}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    ${sourceLine}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="deleteItem(${index})" class="text-slate-300 hover:text-red-500 px-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            listEl.innerHTML = html;
+        }
+
+        function deleteItem(index) {
+            items.splice(index, 1);
+            renderTempList();
+        }
+
+        function clearAll() {
+            if(confirm('ยืนยันลบข้อมูลทั้งหมด?')) {
+                items = [];
+                renderTempList();
+                document.getElementById('report-area').classList.add('hidden');
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('required-length').value = '';
+            document.getElementById('notes').value = '';
+            document.getElementById('quantity').value = '1';
+        }
+
+        // --- APP LOGIC: STOCK ITEMS ---
+
+        function addStockItem() {
+            try {
+                const type = document.getElementById('stock-type').value;
+                let dia = document.getElementById('stock-diameter').value;
+                const len = parseFloat(document.getElementById('stock-length').value);
+                const qty = parseInt(document.getElementById('stock-qty').value);
+
+                let customWeight = null;
+                if (dia === 'CUSTOM_DIA') {
+                    const customDiaVal = document.getElementById('stock-custom-dia').value.trim();
+                    if (!customDiaVal) { alert('กรุณาระบุขนาด'); return; }
+                    dia = customDiaVal;
+                }
+
+                if (!dia) { alert('กรุณาเลือกขนาดเหล็ก'); return; }
+                if (!len || len <= 0 || isNaN(len)) { alert('กรุณาระบุความยาวต่อเส้น'); return; }
+                if (!qty || qty < 1) { alert('จำนวนในสต็อกต้องมากกว่า 0'); return; }
+
+                stockItems.push({ id: Date.now(), type, dia, len, qty });
+
+                document.getElementById('stock-qty').value = '1';
+                renderStockList();
+            } catch (err) {
+                console.error(err);
+                alert("เกิดข้อผิดพลาด: " + err.message);
+            }
+        }
+
+        function deleteStockItem(index) {
+            stockItems.splice(index, 1);
+            renderStockList();
+        }
+
+        function clearStock() {
+            if (stockItems.length === 0) return;
+            if (confirm('ยืนยันล้างข้อมูลสต็อกทั้งหมด?')) {
+                stockItems = [];
+                renderStockList();
+            }
+        }
+
+        function renderStockList() {
+            const listEl = document.getElementById('stock-list');
+            const countEl = document.getElementById('stock-count');
+            const hint = document.getElementById('stock-hint');
+            const hintCount = document.getElementById('stock-hint-count');
+
+            countEl.innerText = stockItems.length;
+
+            if (stockItems.length === 0) {
+                listEl.innerHTML = 'ยังไม่มีข้อมูลสต็อก... กรุณาเพิ่มข้อมูลด้านบน';
+                hint.classList.add('hidden');
+                return;
+            }
+
+            hint.classList.remove('hidden');
+            hintCount.innerText = stockItems.length;
+
+            let html = '<div class="space-y-2">';
+            stockItems.forEach((s, index) => {
+                html += `
+                    <div class="bg-white border border-emerald-200 p-2 rounded flex justify-between items-center shadow-sm">
+                        <div class="flex gap-3 items-center text-left">
+                            <div class="bg-emerald-100 px-2 py-1 rounded font-bold text-emerald-800 text-sm w-20 text-center">
+                                ${s.type}${s.dia}
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-800">
+                                    ยาว <span class="text-emerald-700">${formatNum(s.len)}</span> ม.
+                                    <span class="text-slate-400">x</span> ${s.qty} เส้น
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="deleteStockItem(${index})" class="text-slate-300 hover:text-red-500 px-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            listEl.innerHTML = html;
+        }
+
+        function getStockUnitsFor(type, dia) {
+            return stockItems.filter(s => s.type === type && s.dia === dia && s.qty > 0);
+        }
+
+        function getStockQty(type, dia, stdLen) {
+            let total = 0;
+            stockItems.forEach(s => {
+                if (s.type === type && s.dia === dia && Math.abs(s.len - stdLen) < 0.001) {
+                    total += s.qty;
+                }
+            });
+            return total;
+        }
+
+        // --- CALCULATE ---
+
+        function buildStockPool() {
+            const pool = {};
+            stockItems.forEach(s => {
+                const key = `${s.type}|${s.dia}|${s.len}`;
+                if (!pool[key]) pool[key] = { type: s.type, dia: s.dia, len: s.len, original: 0, remaining: 0 };
+                pool[key].original += s.qty;
+                pool[key].remaining += s.qty;
+            });
+            return pool;
+        }
+
+        function optimizeFromStock(type, dia, pieces, pool) {
+            const poolEntries = Object.values(pool).filter(p => p.type === type && p.dia === dia);
+            let longestLen = poolEntries.length ? Math.max(...poolEntries.map(p => p.len)) : 10;
+
+            let bars = [];
+            // เรียงรายการ "เร่งด่วน" ขึ้นก่อนเสมอ เพื่อให้ได้สิทธิ์ใช้เหล็กในคลังก่อน (ลัดคิว)
+            // ภายในกลุ่มเดียวกันยังเรียงจากยาวไปสั้นเพื่อลดเศษ
+            const sortedPieces = pieces.slice().sort((a, b) => {
+                const ua = a.urgent ? 1 : 0;
+                const ub = b.urgent ? 1 : 0;
+                if (ua !== ub) return ub - ua;
+                return b.len - a.len;
+            });
+
+            function bestOpenBin(pieceLen) {
+                let best = null;
+                bars.forEach(b => {
+                    const rem = b.len - b.used;
+                    if (rem + 0.00001 >= pieceLen) {
+                        if (!best || rem < (best.len - best.used)) best = b;
+                    }
+                });
+                return best;
+            }
+
+            sortedPieces.forEach(piece => {
+                const pieceLen = piece.len;
+                let bin = bestOpenBin(pieceLen);
+                if (!bin) {
+                    let candidate = null;
+                    poolEntries.forEach(p => {
+                        if (p.remaining > 0 && p.len + 0.00001 >= pieceLen) {
+                            if (!candidate || p.len < candidate.len) candidate = p;
+                        }
+                    });
+                    if (candidate) {
+                        candidate.remaining -= 1;
+                        bin = { len: candidate.len, used: 0, segments: [], source: 'stock' };
+                    } else {
+                        const buyLen = (longestLen !== null && longestLen >= pieceLen) ? longestLen : pieceLen;
+                        bin = { len: buyLen, used: 0, segments: [], source: 'purchase' };
+                    }
+                    bars.push(bin);
+                }
+                bin.segments.push({ len: pieceLen, fullLen: pieceLen, note: piece.note, urgent: !!piece.urgent, isWeldPart: false, totalParts: 1, partIndex: 0 });
+                bin.used += pieceLen;
+            });
+
+            bars.forEach(b => { b.waste = b.len - b.used; });
+            return bars;
+        }
+
+        function calculate() {
+            if (items.length === 0) return;
+
+            const normalItems = items.filter(i => !i.useStock);
+            const stockOptItems = items.filter(i => i.useStock);
+
+            const grouped = {};
+            normalItems.forEach(item => {
+                const key = `${item.type}|${item.dia}|${item.cutLen}`;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+
+            const stockGrouped = {};
+            stockOptItems.forEach(item => {
+                const key = `${item.type}|${item.dia}`;
+                if (!stockGrouped[key]) stockGrouped[key] = [];
+                stockGrouped[key].push(item);
+            });
+
+            const stockPool = buildStockPool();
+            const purchaseSummary = {};
+
+            let poHtml = '';
+            let cuttingHtml = '';
+            let totalWasteMeters = 0;
+            let totalWasteKg = 0;
+
+            let wasteByType = {};
+            const stockInUse = stockItems.length > 0;
+
+            Object.keys(grouped).forEach(key => {
+                const [type, dia, stdLenStr] = key.split('|');
+                const stdLen = parseFloat(stdLenStr);
+                const groupItems = grouped[key];
+
+                let pieces = [];
+                groupItems.forEach(i => {
+                    for (let n = 0; n < i.qty; n++) {
+                        pieces.push({ len: i.reqLen, note: i.note, actualLen: i.actualReqLen });
+                    }
+                });
+
+                // ===== Bin packing (ตัดอย่างเดียว ไม่เชื่อม) =====
+                pieces.sort((a, b) => b.len - a.len);
+                let bars = [];
+                pieces.forEach(piece => {
+                    let placed = false;
+                    const pieceLen = parseFloat(piece.actualLen);
+                    for (let bar of bars) {
+                        const currentUsed = parseFloat(bar.used);
+                        if (currentUsed + pieceLen <= stdLen + 0.00001) {
+                            bar.segments.push({ len: pieceLen, fullLen: pieceLen, note: piece.note, isWeldPart: false, totalParts: 1, partIndex: 0 });
+                            bar.used = currentUsed + pieceLen;
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed) {
+                        bars.push({
+                            segments: [{ len: pieceLen, fullLen: pieceLen, note: piece.note, isWeldPart: false, totalParts: 1, partIndex: 0 }],
+                            used: pieceLen
+                        });
+                    }
+                });
+                bars.forEach(b => { b.waste = stdLen - b.used; });
+
+                const totalBars = bars.length;
+                const unitWeight = getUnitWeight(type, dia);
+
+                // ===== Stock comparison =====
+                const stockQty = getStockQty(type, dia, stdLen);
+                const usedFromStock = Math.min(totalBars, stockQty);
+                const orderQty = Math.max(0, totalBars - stockQty);
+                const remainingStock = Math.max(0, stockQty - totalBars);
+                const weightedQty = stockInUse ? orderQty : totalBars;
+                const totalWeight = weightedQty * unitWeight * stdLen;
+
+                poHtml += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-1 font-bold text-slate-700">${type} - ${dia} mm</td>
+                        <td class="p-1 text-center">${formatNum(stdLen)}</td>
+                        <td class="p-1 text-center font-bold text-slate-700">${totalBars}</td>
+                        <td class="p-1 text-center ${stockInUse ? 'text-emerald-600 font-bold' : 'text-slate-300'}">${stockInUse ? stockQty : '-'}</td>
+                        <td class="p-1 text-center ${stockInUse ? 'text-slate-600' : 'text-slate-300'}">${stockInUse ? usedFromStock : '-'}</td>
+                        <td class="p-1 text-center font-bold text-blue-700 bg-blue-50">${orderQty}</td>
+                        <td class="p-1 text-center ${stockInUse ? 'text-emerald-700 font-bold' : 'text-slate-300'}">${stockInUse ? remainingStock : '-'}</td>
+                        <td class="p-1 text-center">${formatNum(unitWeight)}</td>
+                        <td class="p-1 text-right font-mono">${formatNum(totalWeight)}</td>
+                    </tr>
+                `;
+
+                cuttingHtml += `<div class="bg-white rounded-xl shadow border border-slate-200 p-1 mb-1 break-inside-avoid">`;
+                let stockTag = '';
+                if (stockInUse) {
+                    if (orderQty > 0) {
+                        stockTag = ` <span class="text-red-600">| ขาดต้องสั่งซื้อ: ${orderQty} เส้น</span>`;
+                    } else {
+                        stockTag = ` <span class="text-emerald-600">| มีในสต็อกเพียงพอ (เหลือ ${remainingStock} เส้น)</span>`;
+                    }
+                }
+                cuttingHtml += `<div class="border-b pb-0.5 mb-0.5 flex justify-between items-center font-bold text-slate-700 text-xs">
+                    <span>${type}-${dia}mm (Full: ${stdLen}m)</span>
+                    <span>Total: ${totalBars} Bars${stockTag}</span>
+                </div>`;
+
+                if (!wasteByType[type]) {
+                    wasteByType[type] = { dia: dia, items: [], totalMeters: 0, totalKg: 0 };
+                }
+
+                // จับกลุ่มเส้นที่มี pattern เหมือนกันเพื่อย่อการแสดงผล
+                const patterns = {};
+                bars.forEach((bar, idx) => {
+                    const pattern = bar.segments.map(s => s.len.toFixed(3)).join('|');
+                    if (!patterns[pattern]) patterns[pattern] = { count: 0, bar: bar };
+                    patterns[pattern].count++;
+                });
+
+                let displayIdx = 0;
+                Object.keys(patterns).forEach(pattern => {
+                    const patInfo = patterns[pattern];
+                    const bar = patInfo.bar;
+                    displayIdx++;
+                    const noteStr = [...new Set(bar.segments.map(s => s.note))].join(', ');
+                    const wasteMeters = bar.waste;
+                    const wasteKg = wasteMeters * unitWeight;
+                    totalWasteMeters += wasteMeters;
+                    totalWasteKg += wasteKg;
+
+                    wasteByType[type].items.push({ dia, id: displayIdx, meters: wasteMeters, kg: wasteKg, note: noteStr, count: patInfo.count });
+                    wasteByType[type].totalMeters += wasteMeters;
+                    wasteByType[type].totalKg += wasteKg;
+
+                    cuttingHtml += renderBarGraphic(bar, stdLen, type, dia, displayIdx, patInfo.count, wasteMeters, noteStr);
+                });
+
+                cuttingHtml += `</div>`;
+            });
+
+            // ===== โหมด "ใช้เหล็กในคลัง" — Optimize อัตโนมัติ =====
+            Object.keys(stockGrouped).forEach(key => {
+                const [type, dia] = key.split('|');
+                const groupItems = stockGrouped[key];
+
+                let pieces = [];
+                groupItems.forEach(i => {
+                    for (let n = 0; n < i.qty; n++) {
+                        pieces.push({ len: i.reqLen, note: i.note, urgent: !!i.urgent });
+                    }
+                });
+
+                const bars = optimizeFromStock(type, dia, pieces, stockPool);
+                const unitWeight = getUnitWeight(type, dia);
+
+                const byLenSource = {};
+                bars.forEach(b => {
+                    const k = `${b.len.toFixed(3)}|${b.source}`;
+                    if (!byLenSource[k]) byLenSource[k] = { len: b.len, source: b.source, bars: [] };
+                    byLenSource[k].bars.push(b);
+                });
+
+                cuttingHtml += `<div class="bg-white rounded-xl shadow border border-emerald-300 p-1 mb-1 break-inside-avoid">`;
+                cuttingHtml += `<div class="border-b pb-0.5 mb-0.5 flex justify-between items-center font-bold text-slate-700 text-xs">
+                    <span><i class="fa-solid fa-wand-magic-sparkles text-emerald-600"></i> ${type}-${dia}mm (จากคลัง - Optimize อัตโนมัติ)</span>
+                    <span>Total: ${bars.length} Bars</span>
+                </div>`;
+
+                if (!wasteByType[type]) {
+                    wasteByType[type] = { dia: dia, items: [], totalMeters: 0, totalKg: 0 };
+                }
+
+                Object.keys(byLenSource).forEach(lk => {
+                    const grp = byLenSource[lk];
+                    const stdLen = grp.len;
+                    const totalBarsThisLen = grp.bars.length;
+                    const sourceLabel = grp.source === 'stock'
+                        ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold ml-1"><i class="fa-solid fa-warehouse"></i> จากคลัง</span>`
+                        : `<span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold ml-1"><i class="fa-solid fa-cart-shopping"></i> สั่งซื้อใหม่</span>`;
+
+                    const poolEntry = Object.values(stockPool).find(p => p.type === type && p.dia === dia && Math.abs(p.len - stdLen) < 0.001);
+                    const origQty = poolEntry ? poolEntry.original : 0;
+                    const remainQty = poolEntry ? poolEntry.remaining : 0;
+
+                    if (grp.source === 'purchase') {
+                        const pk = `${type}|${dia}|${stdLen.toFixed(3)}`;
+                        if (!purchaseSummary[pk]) purchaseSummary[pk] = { type, dia, len: stdLen, qty: 0, urgent: false };
+                        purchaseSummary[pk].qty += totalBarsThisLen;
+                        // ถ้ามีท่อนเร่งด่วนที่หาสต็อกไม่ได้จนต้องสั่งซื้อ → ติดธงเร่งด่วน
+                        const hasUrgent = grp.bars.some(b => b.segments.some(s => s.urgent));
+                        if (hasUrgent) purchaseSummary[pk].urgent = true;
+                    }
+
+                    poHtml += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-1 font-bold text-slate-700">${type} - ${dia} mm ${sourceLabel}</td>
+                            <td class="p-1 text-center">${formatNum(stdLen)}</td>
+                            <td class="p-1 text-center font-bold text-slate-700">${totalBarsThisLen}</td>
+                            <td class="p-1 text-center ${grp.source === 'stock' ? 'text-emerald-600 font-bold' : 'text-slate-300'}">${grp.source === 'stock' ? origQty : '-'}</td>
+                            <td class="p-1 text-center ${grp.source === 'stock' ? 'text-slate-600' : 'text-slate-300'}">${grp.source === 'stock' ? totalBarsThisLen : '-'}</td>
+                            <td class="p-1 text-center font-bold text-blue-700 bg-blue-50">${grp.source === 'purchase' ? totalBarsThisLen : 0}</td>
+                            <td class="p-1 text-center ${grp.source === 'stock' ? 'text-emerald-700 font-bold' : 'text-slate-300'}">${grp.source === 'stock' ? remainQty : '-'}</td>
+                            <td class="p-1 text-center">${formatNum(unitWeight)}</td>
+                            <td class="p-1 text-right font-mono">${formatNum(totalBarsThisLen * unitWeight * stdLen)}</td>
+                        </tr>
+                    `;
+
+                    const patterns = {};
+                    grp.bars.forEach(bar => {
+                        const pattern = bar.segments.map(s => s.len.toFixed(3)).join('|');
+                        if (!patterns[pattern]) patterns[pattern] = { count: 0, bar: bar };
+                        patterns[pattern].count++;
+                    });
+
+                    cuttingHtml += `<div class="text-[10px] text-slate-500 font-bold mt-1 mb-0.5 pl-1">— ตัดจากเหล็กยาว ${formatNum(stdLen)} ม. ${sourceLabel} (${totalBarsThisLen} เส้น) —</div>`;
+
+                    let displayIdx = 0;
+                    Object.keys(patterns).forEach(pattern => {
+                        const patInfo = patterns[pattern];
+                        const bar = patInfo.bar;
+                        displayIdx++;
+                        const noteStr = [...new Set(bar.segments.map(s => s.note))].join(', ');
+                        const wasteMeters = bar.waste;
+                        const wasteKg = wasteMeters * unitWeight;
+                        totalWasteMeters += wasteMeters;
+                        totalWasteKg += wasteKg;
+
+                        wasteByType[type].items.push({ dia, id: `${formatNum(stdLen)}m-${displayIdx}`, meters: wasteMeters, kg: wasteKg, note: noteStr, count: patInfo.count });
+                        wasteByType[type].totalMeters += wasteMeters;
+                        wasteByType[type].totalKg += wasteKg;
+
+                        const barUrgent = bar.segments.some(s => s.urgent);
+                        cuttingHtml += renderBarGraphic(bar, stdLen, type, dia, displayIdx, patInfo.count, wasteMeters, noteStr, barUrgent);
+                    });
+                });
+
+                cuttingHtml += `</div>`;
+            });
+
+            // ===== Waste table grouped =====
+            let wasteByTypeSized = {};
+            Object.keys(wasteByType).forEach(type => {
+                const typeData = wasteByType[type];
+                if (!wasteByTypeSized[type]) wasteByTypeSized[type] = { totalMeters: 0, totalKg: 0, sizes: {} };
+                typeData.items.forEach(item => {
+                    const sizeKey = `${type}${item.dia}`;
+                    if (!wasteByTypeSized[type].sizes[sizeKey]) {
+                        wasteByTypeSized[type].sizes[sizeKey] = { dia: item.dia, totalMeters: 0, totalKg: 0, items: [] };
+                    }
+                    wasteByTypeSized[type].sizes[sizeKey].items.push(item);
+                    wasteByTypeSized[type].sizes[sizeKey].totalMeters += item.meters;
+                    wasteByTypeSized[type].sizes[sizeKey].totalKg += item.kg;
+                });
+                wasteByTypeSized[type].totalMeters = typeData.totalMeters;
+                wasteByTypeSized[type].totalKg = typeData.totalKg;
+            });
+
+            let wasteHtml = '';
+            Object.keys(wasteByTypeSized).forEach(type => {
+                const typeData = wasteByTypeSized[type];
+                wasteHtml += `<tr class="bg-slate-300 font-bold text-slate-800"><td colspan="5" class="p-1">เหล็ก ${type}</td></tr>`;
+                Object.keys(typeData.sizes).forEach(sizeKey => {
+                    const sizeData = typeData.sizes[sizeKey];
+                    wasteHtml += `
+                        <tr class="bg-slate-100">
+                            <td class="p-1 font-bold text-slate-700">${type} ${sizeData.dia}mm</td>
+                            <td class="p-1 text-center text-slate-500">-</td>
+                            <td class="p-1 text-center text-slate-500">-</td>
+                            <td class="p-1 text-center text-slate-500">-</td>
+                            <td class="p-1"></td>
+                        </tr>`;
+                    sizeData.items.forEach(item => {
+                        wasteHtml += `
+                            <tr class="hover:bg-slate-50 border-b border-slate-100">
+                                <td class="p-1 pl-4">${type}${item.dia}</td>
+                                <td class="p-1 text-center text-slate-400">#${item.id}</td>
+                                <td class="p-1 text-center font-bold text-red-500">${formatNum(item.meters)}</td>
+                                <td class="p-1 text-center font-bold text-orange-600">${formatNum(item.kg)}</td>
+                                <td class="p-1 text-xs text-slate-500 truncate max-w-[150px]">${item.note}${item.count > 1 ? ` (${item.count} sets)` : ''}</td>
+                            </tr>`;
+                    });
+                    wasteHtml += `
+                        <tr class="bg-green-100 border-b border-green-300 font-bold text-green-900">
+                            <td class="p-1 pl-4">รวม ${type}${sizeData.dia}</td>
+                            <td class="p-1 text-center">-</td>
+                            <td class="p-1 text-center">${formatNum(sizeData.totalMeters)}</td>
+                            <td class="p-1 text-center">${formatNum(sizeData.totalKg)}</td>
+                            <td class="p-1"></td>
+                        </tr>`;
+                });
+                wasteHtml += `
+                    <tr class="bg-blue-200 border-b-2 border-blue-400 font-bold text-blue-900">
+                        <td class="p-1" colspan="2">รวมเหล็ก ${type}</td>
+                        <td class="p-1 text-center">${formatNum(typeData.totalMeters)}</td>
+                        <td class="p-1 text-center">${formatNum(typeData.totalKg)}</td>
+                        <td class="p-1"></td>
+                    </tr>`;
+            });
+
+            document.getElementById('po-table-body').innerHTML = poHtml;
+            document.getElementById('cutting-plan-container').innerHTML = cuttingHtml;
+            document.getElementById('waste-table-body').innerHTML = wasteHtml;
+            document.getElementById('total-waste-meters').innerText = formatNum(totalWasteMeters);
+            document.getElementById('total-waste-kg').innerText = formatNum(totalWasteKg);
+            document.getElementById('print-date').innerText = new Date().toLocaleDateString('th-TH');
+
+            const footnote = document.getElementById('stock-footnote');
+            if (stockInUse) {
+                footnote.classList.remove('hidden');
+            } else {
+                footnote.classList.add('hidden');
+            }
+
+            // ===== หน้าสถานะเหล็กในคลัง (สำหรับแสดงผล + พิมพ์) =====
+            const statusPage = document.getElementById('stock-status-page');
+            const statusBody = document.getElementById('stock-status-table-body');
+            const purchaseDiv = document.getElementById('stock-status-purchase');
+            if (stockItems.length > 0) {
+                let shtml = '';
+                Object.values(stockPool)
+                    .sort((a, b) => a.type.localeCompare(b.type) || (a.dia - b.dia) || (a.len - b.len))
+                    .forEach(p => {
+                        const used = p.original - p.remaining;
+                        let statusLabel = '<span class="text-slate-400">ยังไม่ได้ใช้</span>';
+                        if (used > 0 && p.remaining === 0) statusLabel = '<span class="text-red-600 font-bold">ใช้หมด</span>';
+                        else if (used > 0) statusLabel = '<span class="text-emerald-600 font-bold">ใช้บางส่วน</span>';
+
+                        shtml += `
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-1 font-bold text-slate-700">${p.type}${p.dia}</td>
+                                <td class="p-1 text-center">${formatNum(p.len)}</td>
+                                <td class="p-1 text-center">${p.original}</td>
+                                <td class="p-1 text-center bg-emerald-50 font-bold text-emerald-700">${used}</td>
+                                <td class="p-1 text-center bg-blue-50 font-bold text-blue-700">${p.remaining}</td>
+                                <td class="p-1">${statusLabel}</td>
+                            </tr>`;
+                    });
+                statusBody.innerHTML = shtml || `<tr><td colspan="6" class="p-2 text-center text-slate-400">ไม่มีข้อมูลสต็อก</td></tr>`;
+
+                const purchaseList = Object.values(purchaseSummary)
+                    .sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0));
+                if (purchaseList.length > 0) {
+                    const anyUrgent = purchaseList.some(p => p.urgent);
+                    let phtml = `<div class="border-t border-dashed border-slate-300 pt-2 mt-1">
+                        <h3 class="text-xs font-bold text-red-600 mb-1"><i class="fa-solid fa-cart-shopping"></i> ต้องสั่งซื้อเพิ่ม (เกินกว่าที่มีในคลัง / โหมด Optimize)</h3>
+                        <table class="w-full text-xs">
+                            <thead class="bg-red-50 text-red-800">
+                                <tr>
+                                    <th class="p-1 text-left text-xs">รายการ</th>
+                                    <th class="p-1 text-center text-xs">ความยาว (ม.)</th>
+                                    <th class="p-1 text-center text-xs">จำนวน (เส้น)</th>
+                                    <th class="p-1 text-left text-xs">หมายเหตุ</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    purchaseList.forEach(p => {
+                        const urgentNote = p.urgent
+                            ? `<span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold"><i class="fa-solid fa-bolt"></i> เร่งด่วน</span>`
+                            : `<span class="text-slate-400">-</span>`;
+                        phtml += `
+                            <tr class="border-b border-slate-100 ${p.urgent ? 'bg-red-50' : ''}">
+                                <td class="p-1 font-bold text-slate-700">${p.type}${p.dia}</td>
+                                <td class="p-1 text-center">${formatNum(p.len)}</td>
+                                <td class="p-1 text-center font-bold text-red-600">${p.qty}</td>
+                                <td class="p-1">${urgentNote}</td>
+                            </tr>`;
+                    });
+                    phtml += `</tbody></table>`;
+                    if (anyUrgent) {
+                        phtml += `<p class="text-[10px] text-red-600 font-bold mt-1"><i class="fa-solid fa-triangle-exclamation"></i> รายการเร่งด่วนต้องรีบสั่งซื้อ เนื่องจากในคลังมีไม่พอสำหรับงานที่ต้องใช้ทันที</p>`;
+                    }
+                    phtml += `</div>`;
+                    purchaseDiv.innerHTML = phtml;
+                } else {
+                    purchaseDiv.innerHTML = `<div class="border-t border-dashed border-slate-300 pt-2 mt-1 text-xs text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> สต็อกเพียงพอ ไม่ต้องสั่งซื้อเพิ่ม</div>`;
+                }
+
+                statusPage.classList.remove('hidden');
+            } else {
+                statusPage.classList.add('hidden');
+            }
+
+            document.getElementById('report-area').classList.remove('hidden');
+            document.getElementById('report-area').scrollIntoView({ behavior: 'smooth' });
+        }
+
+
+        /* วาดกราฟิกของเส้น 1 เส้น */
+        function renderBarGraphic(bar, stdLen, type, dia, displayIdx, count, wasteMeters, noteStr, isUrgent) {
+            const greyColors = ['#475569', '#64748b', '#334155', '#1e293b'];
+            const urgentTag = isUrgent
+                ? ` <span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded-full font-bold ml-1"><i class="fa-solid fa-bolt"></i> เร่งด่วน</span>`
+                : '';
+
+            let html = `<div class="mb-1 text-xs">`;
+            html += `<div class="flex justify-between items-start mb-0.5 text-xs">
+                <div>
+                    <span class="text-slate-700 font-bold text-xs">Bar #${displayIdx}${count > 1 ? ` (${count} sets)` : ''}</span>
+                    <span class="text-[10px] bg-slate-700 text-white px-1.5 py-0.5 rounded-full font-bold ml-1">เหล็กยาว ${formatNum(stdLen)} ม.</span>${urgentTag}
+                    ${noteStr ? `<div class="text-slate-500 text-xs">สำหรับ: ${noteStr}</div>` : ''}
+                </div>
+                <span class="text-red-500 font-bold text-xs">เศษ: ${formatNum(wasteMeters)}m</span>
+            </div>`;
+
+            html += `<div class="flex w-full h-5 bg-slate-200 rounded overflow-hidden border border-slate-300 relative">`;
+
+            bar.segments.forEach((s, pid) => {
+                const width = (s.len / stdLen) * 100;
+                const bgColor = greyColors[pid % greyColors.length];
+                const label = s.len.toFixed(2);
+                const titleTxt = `${s.len.toFixed(2)}m`;
+
+                html += `
+                    <div style="width:${width}%; background-color:${bgColor};" class="rebar-texture text-white flex items-center justify-center whitespace-nowrap overflow-hidden px-0.5 text-xs relative font-semibold" title="${titleTxt} - ${type}${dia}mm">
+                        ${label}
+                    </div>`;
+            });
+
+            html += `</div>`;
+            html += `</div>`;
+            return html;
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                updateDiameters();
+                updateStockDiameters();
+            });
+        } else {
+            updateDiameters();
+            updateStockDiameters();
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && document.activeElement.tagName === 'INPUT') {
+                if (!document.getElementById('panel-stock').classList.contains('hidden')) {
+                    addStockItem();
+                } else {
+                    addItem();
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
